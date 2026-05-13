@@ -1,56 +1,67 @@
 #!/usr/bin/env python3
-import socket
-import sys
 import argparse
+import socket
+
+DEFAULT_PORT = 3222
+BUFSIZE = 4096
 
 
-def send(msg, goal):
-    print("Started")
-    try:
-        with socket.create_connection((goal, 3222)) as c:
-            print("2. Step")
-            c.sendall(msg.encode())
-            print("finished")
-    except Exception as e:
-        print(f"Send error: {e}")
-
-
-def listen():
+def main() -> None:
     
-    try:
-        with socket.create_server(("", 3222)) as s:
-            print("Listening on port 3222...")
-            while True:
-                conn, addr = s.accept()
-                with conn:
-                    rmsg = conn.recv(4096)
-                    if rmsg:
-                        print(f"{addr}: {rmsg.decode()}")
-    except Exception as e:
-        print(f"Listen error: {e}")
+    parser = argparse.ArgumentParser()
+    subparser = parser.add_subparsers(dest="mode", required=True)
+    
+    send_parser = subparser.add_parser("send", help="send a message to another computer")
+    send_parser.add_argument("host", help="IPv4 of host computer")
+    send_parser.add_argument("message", help="message that will be sent")
+    send_parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="specify host port")
+    
+    listen_parser = subparser.add_parser("listen", help="listen for incoming connections")
+    listen_parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="specify port to listen on")
+    
+    args = parser.parse_args()
+    
+    
+    if args.mode == "send":
+        send(args.host, args.message, args.port)
 
-
-def main():
-    if len(sys.argv) < 2:
-        print("Usage:")
-        print("  -s <host> <message>   Send message")
-        print("  -l                    Listen")
-        return
-
-    if sys.argv[1] == "-s":
-        if len(sys.argv) != 4:
-            print("Usage: -s <host> <message>")
-            return
-        victim = sys.argv[2]
-        msg = sys.argv[3]
-        send(msg, victim)
-
-    elif sys.argv[1] == "-l":
-        listen()
+    elif args.mode == "listen":
+        listen(args.port)
 
     else:
         print("Unknown option")
 
 
+
+def send(host: str, message: str, port: int) -> None:
+    print("Started")
+    try:
+        with socket.create_connection((host, port)) as c:
+            print("2. Step")
+            c.sendall(message.encode())
+            print("finished")
+    except Exception as e:
+        print(f"Send error: {e}")
+
+
+
+def listen(port: int) -> None:
+    
+    try:
+        with socket.create_server(("", port)) as s:
+            print(f"Listening on port {port}...")
+            while True:
+                conn, addr = s.accept()
+                with conn:
+                    rmsg = conn.recv(BUFSIZE)
+                    if rmsg:
+                        print(f"{addr}: {rmsg.decode()}")
+
+    except Exception as e:
+        print(f"Listen error: {e}")
+
+
+
 if __name__ == "__main__":
     main()
+    
