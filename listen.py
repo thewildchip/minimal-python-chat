@@ -1,9 +1,11 @@
 import socket
 import sys
 import argparse
+import csv
 
 BUFSIZE = 4096
 DEFAULT_PORT = 3222
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -26,6 +28,9 @@ def listen(port: int) -> None:
                 with conn:
                     rmsg = conn.recv(BUFSIZE)
                     if rmsg:
+                        with open("log.csv","a") as log:
+                            logwriter = csv.writer(log)
+                            logwriter.writerow([addr[0],addr[1],rmsg.decode()])
                         print(f"{addr}: {rmsg.decode()}")
 
     except Exception as e:
